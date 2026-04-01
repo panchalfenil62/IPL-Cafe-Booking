@@ -146,6 +146,8 @@ app.get('/api/export', (req, res) => {
   res.send(csvContent);
 });
 
+export default app;
+
 // --- Vite Integration ---
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
@@ -162,9 +164,12 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  // Only listen if not running as a serverless function
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
