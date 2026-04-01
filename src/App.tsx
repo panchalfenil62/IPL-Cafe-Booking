@@ -6,6 +6,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
+  BrowserRouter as Router, 
+  Routes, 
+  Route, 
+  Navigate,
+  useNavigate
+} from 'react-router-dom';
+import { 
   Tv, 
   Volume2, 
   Utensils, 
@@ -25,14 +32,18 @@ import {
   Download,
   Settings,
   ArrowLeft,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  Save,
+  LogOut,
+  Image as ImageIcon
 } from 'lucide-react';
 import { FOOD_COMBOS, FEATURES, TESTIMONIALS } from './constants';
 import { Match } from './types';
 
 // --- Components ---
 
-const Navbar = () => {
+const Navbar = ({ logoUrl }: { logoUrl?: string }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,9 +64,13 @@ const Navbar = () => {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'glass py-3' : 'bg-transparent py-6'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.5)]">
-            <Trophy className="text-stadium-black w-6 h-6" />
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-full shadow-[0_0_15px_rgba(212,175,55,0.5)]" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.5)]">
+              <Trophy className="text-stadium-black w-6 h-6" />
+            </div>
+          )}
           <span className="font-display font-bold text-xl tracking-tighter text-glow-gold">
             IPL<span className="text-neon-blue">CAFE</span>
           </span>
@@ -164,13 +179,14 @@ const CountdownTimer = ({ targetDateString }: { targetDateString?: string }) => 
   );
 };
 
-const Hero = ({ match }: { match?: Match }) => {
+const Hero = ({ hero, match }: { hero?: any, match?: Match }) => {
+  if (!hero) return null;
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
       {/* Background with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=2000" 
+          src={hero.backgroundImage} 
           alt="Cricket Stadium" 
           className="w-full h-full object-cover opacity-30"
           referrerPolicy="no-referrer"
@@ -189,17 +205,16 @@ const Hero = ({ match }: { match?: Match }) => {
             Live IPL Screening 2026
           </span>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold leading-[0.9] tracking-tighter mb-6">
-            WATCH IPL LIVE ON <br />
-            <span className="text-gold text-glow-gold">GIANT SCREEN</span>
+            {hero.title} <br />
+            <span className="text-gold text-glow-gold">{hero.highlight}</span>
           </h1>
           <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 font-light">
-            Book your table now for tonight’s big match, enjoy exciting food combos, 
-            live crowd energy, and exclusive match-day offers.
+            {hero.subtitle}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <a 
-              href="https://wa.me/919999999999" 
+              href={`https://wa.me/${hero?.whatsappNumber || ''}`} 
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-8 py-4 bg-[#25D366] text-white font-bold rounded-2xl flex items-center justify-center gap-2 hover:scale-105 transition-transform shadow-[0_0_20px_rgba(37,211,102,0.3)]"
@@ -256,8 +271,12 @@ const MatchHighlight = ({ match }: { match?: Match }) => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             {/* Team 1 */}
             <div className="flex flex-col items-center gap-4 flex-1">
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 p-4 flex items-center justify-center border border-white/10 shadow-2xl">
-                <img src={match.team1.logo} alt={match.team1.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 p-4 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden">
+                {match.team1.logo ? (
+                  <img src={match.team1.logo} alt={match.team1.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="text-gold font-display font-bold text-4xl">{match.team1.name.substring(0, 2).toUpperCase()}</div>
+                )}
               </div>
               <h3 className="text-2xl font-display font-bold">{match.team1.name}</h3>
             </div>
@@ -273,8 +292,12 @@ const MatchHighlight = ({ match }: { match?: Match }) => {
 
             {/* Team 2 */}
             <div className="flex flex-col items-center gap-4 flex-1">
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 p-4 flex items-center justify-center border border-white/10 shadow-2xl">
-                <img src={match.team2.logo} alt={match.team2.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 p-4 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden">
+                {match.team2.logo ? (
+                  <img src={match.team2.logo} alt={match.team2.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="text-gold font-display font-bold text-4xl">{match.team2.name.substring(0, 2).toUpperCase()}</div>
+                )}
               </div>
               <h3 className="text-2xl font-display font-bold">{match.team2.name}</h3>
             </div>
@@ -297,7 +320,7 @@ const MatchHighlight = ({ match }: { match?: Match }) => {
 
           {/* Offer Banner */}
           <div className="mt-8 bg-gold text-stadium-black p-4 rounded-2xl text-center font-bold text-sm md:text-base">
-            🔥 OFFER: Free fries on every six hit by your favorite team!
+            {match.offer}
           </div>
         </motion.div>
       </div>
@@ -305,15 +328,17 @@ const MatchHighlight = ({ match }: { match?: Match }) => {
   );
 };
 
-const Features = () => {
-  const icons: Record<string, any> = { Tv, Volume2, Utensils, Zap };
+const Features = ({ features }: { features?: any[] }) => {
+  const icons: Record<string, any> = { Tv, Volume2, Utensils, Zap, Star, Trophy, Clock, MapPin };
+
+  if (!features) return null;
 
   return (
     <section className="py-24 bg-white/2">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {FEATURES.map((feature, idx) => {
-            const Icon = icons[feature.icon];
+          {features.map((feature, idx) => {
+            const Icon = icons[feature.icon] || Zap;
             return (
               <motion.div 
                 key={feature.id}
@@ -337,7 +362,9 @@ const Features = () => {
   );
 };
 
-const FoodCombos = () => {
+const FoodCombos = ({ combos }: { combos?: any[] }) => {
+  if (!combos) return null;
+
   return (
     <section id="menu" className="py-24">
       <div className="max-w-7xl mx-auto px-4">
@@ -352,7 +379,7 @@ const FoodCombos = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {FOOD_COMBOS.map((combo) => (
+          {combos.map((combo) => (
             <motion.div 
               key={combo.id}
               whileHover={{ y: -10 }}
@@ -389,7 +416,7 @@ const FoodCombos = () => {
   );
 };
 
-const BookingSection = ({ onBookingSuccess }: { onBookingSuccess: () => void }) => {
+const BookingSection = ({ onBookingSuccess, location }: { onBookingSuccess: () => void, location?: any }) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -447,8 +474,8 @@ const BookingSection = ({ onBookingSuccess }: { onBookingSuccess: () => void }) 
 
             <div className="space-y-6">
               {[
-                { icon: MapPin, text: 'Sindhu Bhavan Road, Ahmedabad' },
-                { icon: Phone, text: '+91 99999 88888' },
+                { icon: MapPin, text: location?.address || 'Sindhu Bhavan Road, Ahmedabad' },
+                { icon: Phone, text: location?.phone || '+91 99999 88888' },
                 { icon: Clock, text: 'Open till 1:00 AM during IPL' }
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-4">
@@ -568,7 +595,9 @@ const Scarcity = () => {
   );
 };
 
-const SocialProof = () => {
+const SocialProof = ({ testimonials }: { testimonials?: any[] }) => {
+  if (!testimonials) return null;
+
   return (
     <section className="py-24 bg-white/2">
       <div className="max-w-7xl mx-auto px-4">
@@ -578,7 +607,7 @@ const SocialProof = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-          {TESTIMONIALS.map((t) => (
+          {testimonials.map((t) => (
             <div key={t.id} className="glass p-8 rounded-3xl relative">
               <div className="flex gap-1 text-gold mb-4">
                 {[...Array(t.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-gold" />)}
@@ -610,7 +639,9 @@ const SocialProof = () => {
   );
 };
 
-const Location = () => {
+const Location = ({ location }: { location?: any }) => {
+  if (!location) return null;
+
   return (
     <section id="location" className="py-24">
       <div className="max-w-7xl mx-auto px-4">
@@ -620,9 +651,9 @@ const Location = () => {
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
               <MapPin className="w-12 h-12 text-gold mb-4" />
               <h3 className="text-xl font-bold mb-2">Find Us on Maps</h3>
-              <p className="text-white/40 text-sm mb-6">Sindhu Bhavan Road, near XYZ Landmark, Ahmedabad</p>
+              <p className="text-white/40 text-sm mb-6">{location.landmark}, Ahmedabad</p>
               <div className="w-full h-full absolute inset-0 opacity-20 grayscale invert">
-                <img src="https://picsum.photos/seed/map/800/600" className="w-full h-full object-cover" alt="Map" referrerPolicy="no-referrer" />
+                <img src={location.mapUrl} className="w-full h-full object-cover" alt="Map" referrerPolicy="no-referrer" />
               </div>
               <button className="relative z-10 px-6 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-bold hover:bg-white/20 transition-all">
                 Open in Google Maps
@@ -634,21 +665,21 @@ const Location = () => {
             <div className="space-y-8">
               <div>
                 <h4 className="text-xs uppercase tracking-widest text-gold font-bold mb-2">Address</h4>
-                <p className="text-white/70">Shop 4-5, Premium Plaza, Sindhu Bhavan Road, Ahmedabad, Gujarat 380054</p>
+                <p className="text-white/70">{location.address}</p>
               </div>
               <div className="grid grid-cols-2 gap-8">
                 <div>
                   <h4 className="text-xs uppercase tracking-widest text-gold font-bold mb-2">Parking</h4>
-                  <p className="text-white/70">Valet Parking Available</p>
+                  <p className="text-white/70">{location.parking}</p>
                 </div>
                 <div>
                   <h4 className="text-xs uppercase tracking-widest text-gold font-bold mb-2">Landmark</h4>
-                  <p className="text-white/70">Near Metro Pillar 42</p>
+                  <p className="text-white/70">{location.landmark}</p>
                 </div>
               </div>
               <div>
                 <h4 className="text-xs uppercase tracking-widest text-gold font-bold mb-2">Contact</h4>
-                <p className="text-white/70">+91 99999 88888 <br /> hello@iplcafe.com</p>
+                <p className="text-white/70">{location.phone} <br /> {location.email}</p>
               </div>
             </div>
           </div>
@@ -698,169 +729,738 @@ const Footer = () => {
   );
 };
 
+const TEAM_LOGOS: Record<string, string> = {
+  'CSK': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
+  'CHENNAI SUPER KINGS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
+  'MI': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png',
+  'MUMBAI INDIANS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png',
+  'RCB': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
+  'ROYAL CHALLENGERS BANGALORE': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
+  'ROYAL CHALLENGERS BENGALURU': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
+  'KKR': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/logos/LogoOutline/KKR.png',
+  'KOLKATA KNIGHT RIDERS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/logos/LogoOutline/KKR.png',
+  'RR': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png',
+  'RAJASTHAN ROYALS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png',
+  'DC': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/logos/LogoOutline/DC.png',
+  'DELHI CAPITALS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/logos/LogoOutline/DC.png',
+  'GT': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/logos/LogoOutline/GT.png',
+  'GUJARAT TITANS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/logos/LogoOutline/GT.png',
+  'LSG': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/logos/LogoOutline/LSG.png',
+  'LUCKNOW SUPER GIANTS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/logos/LogoOutline/LSG.png',
+  'PBKS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/logos/LogoOutline/PBKS.png',
+  'PUNJAB KINGS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/logos/LogoOutline/PBKS.png',
+  'SRH': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/logos/LogoOutline/SRH.png',
+  'SUNRISERS HYDERABAD': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/logos/LogoOutline/SRH.png',
+};
+
 const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void }) => {
-  const [matchForm, setMatchForm] = useState(data.match);
+  const [activeTab, setActiveTab] = useState('general');
+  const [editData, setEditData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleUpdateMatch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (data) setEditData(JSON.parse(JSON.stringify(data)));
+  }, [data]);
+
+  if (!editData) return <div className="p-20 text-center text-gold">Loading Admin...</div>;
+
+  const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/match', {
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch('/api/admin/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(matchForm),
+        body: JSON.stringify({
+          ...editData,
+          token
+        }),
       });
       if (response.ok) {
-        alert('Match schedule updated successfully!');
+        alert('Website updated successfully!');
         onUpdate();
+      } else {
+        alert('Unauthorized or session expired. Please login again.');
+        localStorage.removeItem('admin_token');
+        window.location.reload();
       }
     } catch (error) {
       console.error('Update error:', error);
+      alert('Failed to update website.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const updateNested = (path: string, value: any) => {
+    const keys = path.split('.');
+    const newData = JSON.parse(JSON.stringify(editData)); // Deep copy to avoid mutation issues
+    let current = newData;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!current[keys[i]]) {
+        current[keys[i]] = {};
+      }
+      current = current[keys[i]];
+    }
+    current[keys[keys.length - 1]] = value;
+
+    // Auto-update logo if team name changes
+    if (path === 'match.team1.name') {
+      const upperName = (value as string).toUpperCase().trim();
+      const logo = TEAM_LOGOS[upperName];
+      if (logo) {
+        if (!newData.match) newData.match = {};
+        if (!newData.match.team1) newData.match.team1 = {};
+        newData.match.team1.logo = logo;
+      }
+    }
+    if (path === 'match.team2.name') {
+      const upperName = (value as string).toUpperCase().trim();
+      const logo = TEAM_LOGOS[upperName];
+      if (logo) {
+        if (!newData.match) newData.match = {};
+        if (!newData.match.team2) newData.match.team2 = {};
+        newData.match.team2.logo = logo;
+      }
+    }
+
+    setEditData(newData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    window.location.href = '/';
+  };
+
+  const exportBookings = () => {
+    const headers = ['Name', 'Phone', 'Guests', 'Team', 'Date', 'Time'];
+    const csvContent = [
+      headers.join(','),
+      ...editData.bookings.map((b: any) => [b.name, b.phone, b.guests, b.team, b.date, b.time].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bookings_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const tabs = [
+    { id: 'general', label: 'General', icon: Settings },
+    { id: 'match', label: 'Match', icon: Trophy },
+    { id: 'features', label: 'Features', icon: Zap },
+    { id: 'combos', label: 'Combos', icon: Utensils },
+    { id: 'testimonials', label: 'Reviews', icon: Star },
+    { id: 'location', label: 'Location', icon: MapPin },
+    { id: 'bookings', label: 'Bookings', icon: Users },
+  ];
+
   return (
-    <div className="min-h-screen pt-32 pb-20 px-4 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-        <div>
-          <h1 className="text-4xl font-display font-bold text-gold mb-2">Admin Dashboard</h1>
-          <p className="text-white/50">Manage match schedule and view customer bookings.</p>
-        </div>
-        <div className="flex gap-4">
-          <a 
-            href="/api/export" 
-            className="px-6 py-3 glass rounded-xl flex items-center gap-2 hover:bg-white/10 transition-all font-bold text-sm"
-          >
-            <Download className="w-4 h-4" />
-            Export to Excel (CSV)
-          </a>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Match Settings */}
-        <div className="lg:col-span-1">
-          <div className="glass rounded-3xl p-8 sticky top-32">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-gold" />
-              Update Match
-            </h2>
-            <form onSubmit={handleUpdateMatch} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-white/40">Team 1 Name</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-gold outline-none"
-                  value={matchForm.team1.name}
-                  onChange={(e) => setMatchForm({...matchForm, team1: {...matchForm.team1, name: e.target.value}})}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-white/40">Team 2 Name</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-gold outline-none"
-                  value={matchForm.team2.name}
-                  onChange={(e) => setMatchForm({...matchForm, team2: {...matchForm.team2, name: e.target.value}})}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-white/40">Date</label>
-                <input 
-                  type="date" 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-gold outline-none"
-                  value={matchForm.date}
-                  onChange={(e) => setMatchForm({...matchForm, date: e.target.value})}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-white/40">Time</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-gold outline-none"
-                  placeholder="07:30 PM"
-                  value={matchForm.time}
-                  onChange={(e) => setMatchForm({...matchForm, time: e.target.value})}
-                />
-              </div>
-              <button 
-                type="submit"
-                disabled={isSaving}
-                className="w-full py-4 bg-gold text-stadium-black font-bold rounded-xl hover:bg-gold-light transition-all disabled:opacity-50 mt-4"
-              >
-                {isSaving ? 'Saving...' : 'Update Schedule'}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Bookings List */}
-        <div className="lg:col-span-2">
-          <div className="glass rounded-3xl p-8 overflow-hidden">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Users className="w-5 h-5 text-neon-blue" />
-              Recent Bookings ({data.bookings.length})
-            </h2>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="pb-4 text-[10px] uppercase font-bold text-white/40 px-2">Customer</th>
-                    <th className="pb-4 text-[10px] uppercase font-bold text-white/40 px-2">Guests</th>
-                    <th className="pb-4 text-[10px] uppercase font-bold text-white/40 px-2">Team</th>
-                    <th className="pb-4 text-[10px] uppercase font-bold text-white/40 px-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {data.bookings.slice().reverse().map((booking: any) => (
-                    <tr key={booking.id} className="group">
-                      <td className="py-4 px-2">
-                        <div className="font-bold">{booking.name}</div>
-                        <div className="text-xs text-white/40">{booking.phone}</div>
-                      </td>
-                      <td className="py-4 px-2">
-                        <span className="px-2 py-1 bg-white/5 rounded-lg text-xs font-bold">{booking.guests}</span>
-                      </td>
-                      <td className="py-4 px-2">
-                        <span className={`text-xs font-bold ${booking.team === 'Neutral' ? 'text-white/40' : 'text-gold'}`}>
-                          {booking.team}
-                        </span>
-                      </td>
-                      <td className="py-4 px-2">
-                        <div className="flex gap-2">
-                          <a 
-                            href={`https://wa.me/91${booking.phone.replace(/\D/g, '')}`} 
-                            target="_blank"
-                            className="p-2 glass rounded-lg text-[#25D366] hover:bg-[#25D366]/10 transition-all"
-                            title="Chat on WhatsApp"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </a>
-                          <a 
-                            href={`tel:${booking.phone}`} 
-                            className="p-2 glass rounded-lg text-neon-blue hover:bg-neon-blue/10 transition-all"
-                            title="Call Customer"
-                          >
-                            <Phone className="w-4 h-4" />
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {data.bookings.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="py-20 text-center text-white/20 italic">
-                        No bookings yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+    <div className="min-h-screen bg-stadium-black pt-24 pb-12">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sidebar Tabs */}
+          <div className="w-full md:w-64 flex flex-col gap-2">
+            <div className="mb-6 px-4">
+              <h1 className="text-2xl font-display font-bold text-gold">Admin Panel</h1>
+              <p className="text-white/40 text-xs">Manage your IPL Cafe</p>
             </div>
+
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all ${
+                  activeTab === tab.id 
+                    ? 'bg-gold text-stadium-black shadow-[0_0_20px_rgba(212,175,55,0.3)]' 
+                    : 'text-white/50 hover:bg-white/5'
+                }`}
+              >
+                <tab.icon className="w-5 h-5" />
+                {tab.label}
+              </button>
+            ))}
+            
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="mt-8 px-6 py-4 bg-neon-blue text-stadium-black font-black rounded-2xl flex items-center justify-center gap-2 hover:scale-105 transition-all disabled:opacity-50"
+            >
+              <Save className="w-5 h-5" />
+              {isSaving ? 'SAVING...' : 'PUBLISH CHANGES'}
+            </button>
+
+            <button 
+              onClick={handleLogout}
+              className="mt-2 px-6 py-4 bg-red-500/10 text-red-500 font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+              LOGOUT
+            </button>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 glass p-8 rounded-[2.5rem] overflow-hidden">
+            {activeTab === 'general' && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-display font-bold text-gold">General Settings</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Cafe Logo URL</label>
+                    <input 
+                      type="text" 
+                      value={editData?.logoUrl || ''} 
+                      onChange={(e) => updateNested('logoUrl', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">WhatsApp Number (with country code)</label>
+                    <input 
+                      type="text" 
+                      value={editData?.hero?.whatsappNumber || ''} 
+                      onChange={(e) => updateNested('hero.whatsappNumber', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold border-b border-white/10 pb-2">Hero Section</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Main Title</label>
+                      <input 
+                        type="text" 
+                        value={editData?.hero?.title || ''} 
+                        onChange={(e) => updateNested('hero.title', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Highlight Text</label>
+                      <input 
+                        type="text" 
+                        value={editData?.hero?.highlight || ''} 
+                        onChange={(e) => updateNested('hero.highlight', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Subtitle</label>
+                    <textarea 
+                      value={editData?.hero?.subtitle || ''} 
+                      onChange={(e) => updateNested('hero.subtitle', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none h-24"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Background Image URL</label>
+                    <input 
+                      type="text" 
+                      value={editData?.hero?.backgroundImage || ''} 
+                      onChange={(e) => updateNested('hero.backgroundImage', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'match' && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-display font-bold text-gold">Match Settings</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  {/* Team 1 */}
+                  <div className="space-y-4 p-6 bg-white/5 rounded-3xl border border-white/10">
+                    <h3 className="font-bold text-neon-blue">Team 1 (Home)</h3>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Team Name (e.g. CSK, MI)</label>
+                      <input 
+                        type="text" 
+                        list="teams"
+                        value={editData?.match?.team1?.name || ''} 
+                        onChange={(e) => updateNested('match.team1.name', e.target.value)}
+                        placeholder="e.g. Gujarat Titans"
+                        className="w-full bg-stadium-black border border-white/10 rounded-xl p-4 text-white focus:border-neon-blue outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Logo URL</label>
+                      <div className="flex gap-4 items-center">
+                        <input 
+                          type="text" 
+                          value={editData?.match?.team1?.logo || ''} 
+                          onChange={(e) => updateNested('match.team1.logo', e.target.value)}
+                          className="flex-1 bg-stadium-black border border-white/10 rounded-xl p-4 text-white focus:border-neon-blue outline-none"
+                        />
+                        {editData?.match?.team1?.logo && (
+                          <div className="w-12 h-12 bg-white/10 rounded-xl p-2 flex items-center justify-center">
+                            <img src={editData.match.team1.logo} alt="Logo Preview" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team 2 */}
+                  <div className="space-y-4 p-6 bg-white/5 rounded-3xl border border-white/10">
+                    <h3 className="font-bold text-gold">Team 2 (Away)</h3>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Team Name (e.g. CSK, MI)</label>
+                      <input 
+                        type="text" 
+                        list="teams"
+                        value={editData?.match?.team2?.name || ''} 
+                        onChange={(e) => updateNested('match.team2.name', e.target.value)}
+                        placeholder="e.g. Mumbai Indians"
+                        className="w-full bg-stadium-black border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Logo URL</label>
+                      <div className="flex gap-4 items-center">
+                        <input 
+                          type="text" 
+                          value={editData?.match?.team2?.logo || ''} 
+                          onChange={(e) => updateNested('match.team2.logo', e.target.value)}
+                          className="flex-1 bg-stadium-black border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                        />
+                        {editData?.match?.team2?.logo && (
+                          <div className="w-12 h-12 bg-white/10 rounded-xl p-2 flex items-center justify-center">
+                            <img src={editData.match.team2.logo} alt="Logo Preview" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <datalist id="teams">
+                  {Object.keys(TEAM_LOGOS).map(team => <option key={team} value={team} />)}
+                </datalist>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Date (YYYY-MM-DD)</label>
+                    <input 
+                      type="date" 
+                      value={editData?.match?.date || ''} 
+                      onChange={(e) => updateNested('match.date', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Time (e.g. 07:30 PM)</label>
+                    <input 
+                      type="text" 
+                      value={editData?.match?.time || ''} 
+                      onChange={(e) => updateNested('match.time', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Venue</label>
+                    <input 
+                      type="text" 
+                      value={editData?.match?.venue || ''} 
+                      onChange={(e) => updateNested('match.venue', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Match Day Offer Text</label>
+                  <input 
+                    type="text" 
+                    value={editData?.match?.offer || ''} 
+                    onChange={(e) => updateNested('match.offer', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'features' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-display font-bold text-gold">Features Section</h2>
+                  <button 
+                    onClick={() => {
+                      const newFeatures = [...(editData?.features || []), { id: Date.now(), icon: 'Zap', title: 'New Feature', description: 'Feature description' }];
+                      setEditData({ ...editData, features: newFeatures });
+                    }}
+                    className="px-4 py-2 bg-gold/20 text-gold border border-gold/40 rounded-xl text-xs font-bold hover:bg-gold hover:text-stadium-black transition-all"
+                  >
+                    + ADD FEATURE
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(editData?.features || []).map((feature: any, idx: number) => (
+                    <div key={feature.id} className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4 relative group">
+                      <button 
+                        onClick={() => {
+                          const newFeatures = (editData?.features || []).filter((_: any, i: number) => i !== idx);
+                          setEditData({ ...editData, features: newFeatures });
+                        }}
+                        className="absolute top-4 right-4 p-2 bg-red-500/10 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-black text-gold/50">FEATURE #{idx + 1}</span>
+                        <select 
+                          value={feature?.icon || 'Zap'}
+                          onChange={(e) => {
+                            const newFeatures = [...(editData?.features || [])];
+                            newFeatures[idx].icon = e.target.value;
+                            setEditData({ ...editData, features: newFeatures });
+                          }}
+                          className="bg-stadium-black text-xs border border-white/10 rounded-lg p-1"
+                        >
+                          <option value="Tv">TV</option>
+                          <option value="Volume2">Volume</option>
+                          <option value="Utensils">Food</option>
+                          <option value="Zap">Zap</option>
+                          <option value="Star">Star</option>
+                          <option value="Trophy">Trophy</option>
+                          <option value="Clock">Clock</option>
+                          <option value="MapPin">Map</option>
+                        </select>
+                      </div>
+                      <input 
+                        type="text" 
+                        value={feature?.title || ''} 
+                        onChange={(e) => {
+                          const newFeatures = [...(editData?.features || [])];
+                          newFeatures[idx].title = e.target.value;
+                          setEditData({ ...editData, features: newFeatures });
+                        }}
+                        className="w-full bg-stadium-black border border-white/10 rounded-xl p-3 text-white font-bold"
+                      />
+                      <textarea 
+                        value={feature?.description || ''} 
+                        onChange={(e) => {
+                          const newFeatures = [...(editData?.features || [])];
+                          newFeatures[idx].description = e.target.value;
+                          setEditData({ ...editData, features: newFeatures });
+                        }}
+                        className="w-full bg-stadium-black border border-white/10 rounded-xl p-3 text-white/60 text-sm h-20"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'combos' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-display font-bold text-gold">Food Combos</h2>
+                  <button 
+                    onClick={() => {
+                      const newCombos = [...(editData?.combos || []), { id: Date.now(), name: 'New Combo', price: '₹499', description: 'Combo description', image: 'https://picsum.photos/seed/food/800/600', tag: 'NEW' }];
+                      setEditData({ ...editData, combos: newCombos });
+                    }}
+                    className="px-4 py-2 bg-gold/20 text-gold border border-gold/40 rounded-xl text-xs font-bold hover:bg-gold hover:text-stadium-black transition-all"
+                  >
+                    + ADD COMBO
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(editData?.combos || []).map((combo: any, idx: number) => (
+                    <div key={combo.id} className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4 relative group">
+                      <button 
+                        onClick={() => {
+                          const newCombos = (editData?.combos || []).filter((_: any, i: number) => i !== idx);
+                          setEditData({ ...editData, combos: newCombos });
+                        }}
+                        className="absolute top-4 right-4 p-2 bg-red-500/10 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="flex justify-between items-center">
+                        <input 
+                          type="text" 
+                          value={combo?.name || ''} 
+                          onChange={(e) => {
+                            const newCombos = [...(editData?.combos || [])];
+                            newCombos[idx].name = e.target.value;
+                            setEditData({ ...editData, combos: newCombos });
+                          }}
+                          className="bg-transparent border-none text-lg font-bold text-white outline-none"
+                        />
+                        <input 
+                          type="text" 
+                          value={combo?.price || ''} 
+                          onChange={(e) => {
+                            const newCombos = [...(editData?.combos || [])];
+                            newCombos[idx].price = e.target.value;
+                            setEditData({ ...editData, combos: newCombos });
+                          }}
+                          className="bg-stadium-black border border-white/10 rounded-lg px-2 py-1 text-gold font-bold w-20 text-right"
+                        />
+                      </div>
+                      <textarea 
+                        value={combo?.description || ''} 
+                        onChange={(e) => {
+                          const newCombos = [...(editData?.combos || [])];
+                          newCombos[idx].description = e.target.value;
+                          setEditData({ ...editData, combos: newCombos });
+                        }}
+                        className="w-full bg-stadium-black border border-white/10 rounded-xl p-3 text-white/60 text-sm h-20"
+                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-white/30 uppercase">Image URL</label>
+                          <input 
+                            type="text" 
+                            value={combo?.image || ''} 
+                            onChange={(e) => {
+                              const newCombos = [...(editData?.combos || [])];
+                              newCombos[idx].image = e.target.value;
+                              setEditData({ ...editData, combos: newCombos });
+                            }}
+                            className="w-full bg-stadium-black border border-white/10 rounded-xl p-2 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-white/30 uppercase">Tag (e.g. HOT)</label>
+                          <input 
+                            type="text" 
+                            value={combo?.tag || ''} 
+                            onChange={(e) => {
+                              const newCombos = [...(editData?.combos || [])];
+                              newCombos[idx].tag = e.target.value;
+                              setEditData({ ...editData, combos: newCombos });
+                            }}
+                            className="w-full bg-stadium-black border border-white/10 rounded-xl p-2 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'testimonials' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-display font-bold text-gold">Fan Reviews</h2>
+                  <button 
+                    onClick={() => {
+                      const newT = [...(editData?.testimonials || []), { id: Date.now(), name: 'New Fan', rating: 5, comment: 'Great experience!', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=new' }];
+                      setEditData({ ...editData, testimonials: newT });
+                    }}
+                    className="px-4 py-2 bg-gold/20 text-gold border border-gold/40 rounded-xl text-xs font-bold hover:bg-gold hover:text-stadium-black transition-all"
+                  >
+                    + ADD REVIEW
+                  </button>
+                </div>
+                <div className="space-y-6">
+                  {(editData?.testimonials || []).map((t: any, idx: number) => (
+                    <div key={t.id} className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4 relative group">
+                      <button 
+                        onClick={() => {
+                          const newT = (editData?.testimonials || []).filter((_: any, i: number) => i !== idx);
+                          setEditData({ ...editData, testimonials: newT });
+                        }}
+                        className="absolute top-4 right-4 p-2 bg-red-500/10 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="flex items-center gap-4">
+                        <img src={t?.avatar || ''} className="w-12 h-12 rounded-full" alt="Avatar" />
+                        <input 
+                          type="text" 
+                          value={t?.name || ''} 
+                          onChange={(e) => {
+                            const newT = [...(editData?.testimonials || [])];
+                            newT[idx].name = e.target.value;
+                            setEditData({ ...editData, testimonials: newT });
+                          }}
+                          className="bg-transparent border-none font-bold text-white outline-none"
+                        />
+                        <div className="flex gap-1 ml-auto">
+                          {[1,2,3,4,5].map(star => (
+                            <button 
+                              key={star}
+                              onClick={() => {
+                                const newT = [...(editData?.testimonials || [])];
+                                newT[idx].rating = star;
+                                setEditData({ ...editData, testimonials: newT });
+                              }}
+                            >
+                              <Star className={`w-4 h-4 ${star <= (t?.rating || 0) ? 'fill-gold text-gold' : 'text-white/20'}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <textarea 
+                        value={t?.comment || ''} 
+                        onChange={(e) => {
+                          const newT = [...(editData?.testimonials || [])];
+                          newT[idx].comment = e.target.value;
+                          setEditData({ ...editData, testimonials: newT });
+                        }}
+                        className="w-full bg-stadium-black border border-white/10 rounded-xl p-4 text-white/80 italic h-24"
+                      />
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-white/30 uppercase">Avatar URL</label>
+                        <input 
+                          type="text" 
+                          value={t?.avatar || ''} 
+                          onChange={(e) => {
+                            const newT = [...(editData?.testimonials || [])];
+                            newT[idx].avatar = e.target.value;
+                            setEditData({ ...editData, testimonials: newT });
+                          }}
+                          className="w-full bg-stadium-black border border-white/10 rounded-xl p-2 text-xs"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'location' && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-display font-bold text-gold">Location & Contact</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Full Address</label>
+                    <textarea 
+                      value={editData?.location?.address || ''} 
+                      onChange={(e) => updateNested('location.address', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none h-24"
+                    />
+                  </div>
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Landmark</label>
+                      <input 
+                        type="text" 
+                        value={editData?.location?.landmark || ''} 
+                        onChange={(e) => updateNested('location.landmark', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Parking Info</label>
+                      <input 
+                        type="text" 
+                        value={editData?.location?.parking || ''} 
+                        onChange={(e) => updateNested('location.parking', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Phone Number</label>
+                    <input 
+                      type="text" 
+                      value={editData?.location?.phone || ''} 
+                      onChange={(e) => updateNested('location.phone', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Email Address</label>
+                    <input 
+                      type="text" 
+                      value={editData?.location?.email || ''} 
+                      onChange={(e) => updateNested('location.email', e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Map Image URL (or Embed URL)</label>
+                  <input 
+                    type="text" 
+                    value={editData?.location?.mapUrl || ''} 
+                    onChange={(e) => updateNested('location.mapUrl', e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-gold outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'bookings' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-display font-bold text-gold">Recent Bookings</h2>
+                  <button 
+                    onClick={exportBookings}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    EXPORT CSV
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="pb-4 text-xs font-bold text-white/40 uppercase tracking-widest">Customer</th>
+                        <th className="pb-4 text-xs font-bold text-white/40 uppercase tracking-widest">Guests</th>
+                        <th className="pb-4 text-xs font-bold text-white/40 uppercase tracking-widest">Team</th>
+                        <th className="pb-4 text-xs font-bold text-white/40 uppercase tracking-widest">Date/Time</th>
+                        <th className="pb-4 text-xs font-bold text-white/40 uppercase tracking-widest">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {(editData?.bookings || []).slice().reverse().map((booking: any, idx: number) => (
+                        <tr key={idx} className="group hover:bg-white/2 transition-colors">
+                          <td className="py-4">
+                            <div className="font-bold">{booking?.name || 'Unknown'}</div>
+                            <div className="text-xs text-white/40">{booking?.phone || 'No Phone'}</div>
+                          </td>
+                          <td className="py-4 font-mono text-neon-blue">{booking?.guests || 0}</td>
+                          <td className="py-4">
+                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
+                              booking?.team === 'Neutral' ? 'bg-white/10' : 'bg-gold/20 text-gold'
+                            }`}>
+                              {booking?.team || 'Neutral'}
+                            </span>
+                          </td>
+                          <td className="py-4">
+                            <div className="text-sm">{booking?.date || ''}</div>
+                            <div className="text-xs text-white/40">{booking?.time || ''}</div>
+                          </td>
+                          <td className="py-4">
+                            <div className="flex gap-2">
+                              <a 
+                                href={`https://wa.me/91${(booking?.phone || '').replace(/\D/g, '')}`} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-[#25D366]/20 text-[#25D366] rounded-lg hover:bg-[#25D366] hover:text-white transition-all"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </a>
+                              <a 
+                                href={`tel:${booking?.phone || ''}`}
+                                className="p-2 bg-neon-blue/20 text-neon-blue rounded-lg hover:bg-neon-blue hover:text-stadium-black transition-all"
+                              >
+                                <Phone className="w-4 h-4" />
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -868,10 +1468,10 @@ const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void })
   );
 };
 
-const WhatsAppFloating = () => {
+const WhatsAppFloating = ({ number }: { number?: string }) => {
   return (
     <a 
-      href="https://wa.me/919999999999" 
+      href={`https://wa.me/${number || '919999999999'}`} 
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-8 right-8 z-50 w-16 h-16 bg-[#25D366] rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform animate-bounce"
@@ -881,12 +1481,81 @@ const WhatsAppFloating = () => {
   );
 };
 
+const AdminLogin = ({ onLogin }: { onLogin: (token: string) => void }) => {
+  const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const json = await response.json();
+      if (json.success) {
+        localStorage.setItem('admin_token', json.token);
+        onLogin(json.token);
+      } else {
+        setError(json.message || 'Invalid password');
+      }
+    } catch (err) {
+      setError('Connection error. Try again.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-md w-full glass rounded-[2.5rem] p-10 text-center"
+      >
+        <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Lock className="w-8 h-8 text-gold" />
+        </div>
+        <h1 className="text-3xl font-display font-bold mb-2">Admin Login</h1>
+        <p className="text-white/40 mb-8">Enter password to manage your cafe screening.</p>
+        
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input 
+            type="password" 
+            required
+            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-gold outline-none text-center"
+            placeholder="Enter Admin Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
+          <button 
+            type="submit"
+            disabled={isLoggingIn}
+            className="w-full py-4 bg-gold text-stadium-black font-black uppercase tracking-widest rounded-2xl hover:bg-gold-light transition-all disabled:opacity-50"
+          >
+            {isLoggingIn ? 'Verifying...' : 'Login to Dashboard'}
+          </button>
+        </form>
+        <a href="/" className="inline-block mt-8 text-white/40 hover:text-white text-sm font-bold flex items-center justify-center gap-2">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Website
+        </a>
+      </motion.div>
+    </div>
+  );
+};
+
 // --- Main App ---
 
 export default function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [adminToken, setAdminToken] = useState<string | null>(localStorage.getItem('admin_token'));
 
   const fetchData = async () => {
     try {
@@ -913,35 +1582,41 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen selection:bg-gold selection:text-stadium-black">
-      <Navbar />
-      
-      {/* Admin Toggle (Hidden in production, but for demo we show it) */}
-      <button 
-        onClick={() => setIsAdmin(!isAdmin)}
-        className="fixed bottom-28 right-8 z-50 w-12 h-12 glass rounded-full flex items-center justify-center text-white/50 hover:text-gold transition-all"
-        title={isAdmin ? "View Site" : "Admin Panel"}
-      >
-        {isAdmin ? <ArrowLeft className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
-      </button>
+    <Router>
+      <div className="min-h-screen selection:bg-gold selection:text-stadium-black">
+        <Navbar logoUrl={data?.logoUrl} />
+        
+        <Routes>
+          {/* Visitor View */}
+          <Route path="/" element={
+            <>
+              <Hero hero={data?.hero} match={data?.match} />
+              <MatchHighlight match={data?.match} />
+              <Features features={data?.features} />
+              <FoodCombos combos={data?.combos} />
+              <BookingSection onBookingSuccess={fetchData} location={data?.location} />
+              <Scarcity />
+              <SocialProof testimonials={data?.testimonials} />
+              <Location location={data?.location} />
+            </>
+          } />
 
-      {isAdmin ? (
-        <AdminDashboard data={data} onUpdate={fetchData} />
-      ) : (
-        <>
-          <Hero match={data?.match} />
-          <MatchHighlight match={data?.match} />
-          <Features />
-          <FoodCombos />
-          <BookingSection onBookingSuccess={fetchData} />
-          <Scarcity />
-          <SocialProof />
-          <Location />
-        </>
-      )}
-      
-      <Footer />
-      <WhatsAppFloating />
-    </div>
+          {/* Hidden Admin Route */}
+          <Route path="/admin" element={
+            adminToken ? (
+              <AdminDashboard data={data} onUpdate={fetchData} />
+            ) : (
+              <AdminLogin onLogin={(token) => setAdminToken(token)} />
+            )
+          } />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+        
+        <Footer />
+        <WhatsAppFloating number={data?.hero?.whatsappNumber} />
+      </div>
+    </Router>
   );
 }

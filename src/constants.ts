@@ -8,6 +8,7 @@ export const UPCOMING_MATCHES: Match[] = [
     date: '2026-04-05',
     time: '07:30 PM',
     venue: 'Wankhede Stadium, Mumbai',
+    offer: 'Free Mocktail on every 4 & 6!',
   }
 ];
 

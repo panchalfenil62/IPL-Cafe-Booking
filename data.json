@@ -1,0 +1,17 @@
+{
+  "logoUrl": "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png",
+  "match": {
+    "team1": {
+      "name": "ROYAL CHALLENGERS BENGALURU",
+      "logo": "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png"
+    },
+    "team2": {
+      "name": "RAJASTHAN ROYALS",
+      "logo": "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png"
+    },
+    "date": "2026-04-05",
+    "time": "07:30 PM",
+    "venue": "Wankhede Stadium, Mumbai"
+  },
+  "bookings": []
+}

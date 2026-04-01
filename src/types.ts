@@ -5,6 +5,7 @@ export interface Match {
   date: string;
   time: string;
   venue: string;
+  offer: string;
 }
 
 export interface Combo {
