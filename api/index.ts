@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 
@@ -55,10 +54,22 @@ const getInitialData = () => ({
 });
 
 const readData = () => {
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(getInitialData(), null, 2));
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    }
+    // If file doesn't exist, try to write it (might fail on Vercel)
+    const initial = getInitialData();
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2));
+    } catch (e) {
+      console.warn('Could not write data.json, using initial data in-memory');
+    }
+    return initial;
+  } catch (error) {
+    console.error('Error reading data:', error);
+    return getInitialData();
   }
-  return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
 };
 
 const saveData = (data: any) => {
@@ -151,6 +162,7 @@ export default app;
 // --- Vite Integration ---
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

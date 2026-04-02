@@ -41,6 +41,32 @@ import {
 import { FOOD_COMBOS, FEATURES, TESTIMONIALS } from './constants';
 import { Match } from './types';
 
+const TEAM_LOGOS: Record<string, string> = {
+  'CSK': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
+  'CHENNAI SUPER KINGS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
+  'MI': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png',
+  'MUMBAI INDIANS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png',
+  'RCB': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
+  'ROYAL CHALLENGERS BANGALORE': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
+  'ROYAL CHALLENGERS BENGALURU': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
+  'KKR': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/logos/LogoOutline/KKR.png',
+  'KOLKATA KNIGHT RIDERS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/logos/LogoOutline/KKR.png',
+  'RR': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png',
+  'RAJASTHAN ROYALS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png',
+  'DC': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/logos/LogoOutline/DC.png',
+  'DELHI CAPITALS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/logos/LogoOutline/DC.png',
+  'GT': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/logos/LogoOutline/GT.png',
+  'GUJARAT TITANS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/logos/LogoOutline/GT.png',
+  'LSG': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/logos/LogoOutline/LSG.png',
+  'LUCKNOW SUPER GIANTS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/logos/LogoOutline/LSG.png',
+  'PBKS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/logos/LogoOutline/PBKS.png',
+  'PUNJAB KINGS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/logos/LogoOutline/PBKS.png',
+  'SRH': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/logos/LogoOutline/SRH.png',
+  'SUNRISERS HYDERABAD': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/logos/LogoOutline/SRH.png',
+  'IPL': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/IPL/logos/LogoOutline/IPL.png',
+  'TATA IPL': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/IPL/logos/LogoOutline/IPL.png',
+};
+
 // --- Components ---
 
 const Navbar = ({ logoUrl }: { logoUrl?: string }) => {
@@ -272,8 +298,13 @@ const MatchHighlight = ({ match }: { match?: Match }) => {
             {/* Team 1 */}
             <div className="flex flex-col items-center gap-4 flex-1">
               <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 p-4 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden">
-                {match.team1.logo ? (
-                  <img src={match.team1.logo} alt={match.team1.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                {match.team1.logo || TEAM_LOGOS[match.team1.name.toUpperCase().trim()] ? (
+                  <img 
+                    src={match.team1.logo || TEAM_LOGOS[match.team1.name.toUpperCase().trim()]} 
+                    alt={match.team1.name} 
+                    className="w-full h-full object-contain" 
+                    referrerPolicy="no-referrer" 
+                  />
                 ) : (
                   <div className="text-gold font-display font-bold text-4xl">{match.team1.name.substring(0, 2).toUpperCase()}</div>
                 )}
@@ -293,8 +324,13 @@ const MatchHighlight = ({ match }: { match?: Match }) => {
             {/* Team 2 */}
             <div className="flex flex-col items-center gap-4 flex-1">
               <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white/5 p-4 flex items-center justify-center border border-white/10 shadow-2xl overflow-hidden">
-                {match.team2.logo ? (
-                  <img src={match.team2.logo} alt={match.team2.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                {match.team2.logo || TEAM_LOGOS[match.team2.name.toUpperCase().trim()] ? (
+                  <img 
+                    src={match.team2.logo || TEAM_LOGOS[match.team2.name.toUpperCase().trim()]} 
+                    alt={match.team2.name} 
+                    className="w-full h-full object-contain" 
+                    referrerPolicy="no-referrer" 
+                  />
                 ) : (
                   <div className="text-gold font-display font-bold text-4xl">{match.team2.name.substring(0, 2).toUpperCase()}</div>
                 )}
@@ -727,30 +763,6 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
-
-const TEAM_LOGOS: Record<string, string> = {
-  'CSK': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
-  'CHENNAI SUPER KINGS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
-  'MI': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png',
-  'MUMBAI INDIANS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png',
-  'RCB': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
-  'ROYAL CHALLENGERS BANGALORE': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
-  'ROYAL CHALLENGERS BENGALURU': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/LogoOutline/RCB.png',
-  'KKR': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/logos/LogoOutline/KKR.png',
-  'KOLKATA KNIGHT RIDERS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/logos/LogoOutline/KKR.png',
-  'RR': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png',
-  'RAJASTHAN ROYALS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/logos/LogoOutline/RR.png',
-  'DC': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/logos/LogoOutline/DC.png',
-  'DELHI CAPITALS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/logos/LogoOutline/DC.png',
-  'GT': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/logos/LogoOutline/GT.png',
-  'GUJARAT TITANS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/logos/LogoOutline/GT.png',
-  'LSG': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/logos/LogoOutline/LSG.png',
-  'LUCKNOW SUPER GIANTS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/logos/LogoOutline/LSG.png',
-  'PBKS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/logos/LogoOutline/PBKS.png',
-  'PUNJAB KINGS': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/logos/LogoOutline/PBKS.png',
-  'SRH': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/logos/LogoOutline/SRH.png',
-  'SUNRISERS HYDERABAD': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/logos/LogoOutline/SRH.png',
 };
 
 const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void }) => {
