@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: settings
+    // Document ID: config
+    // Fields:
+    //   - logoUrl: string
+    //   - hero: object
+    //   - match: object
+    //   - features: array
+    //   - combos: array
+    //   - testimonials: array
+    //   - location: object
+    //
+    // Collection: bookings
+    // Document ID: {bookingId}
+    // Fields:
+    //   - name: string (required)
+    //   - phone: string (required)
+    //   - guests: string (required)
+    //   - team: string
+    //   - date: string (required)
+    //   - time: string
+    //   - createdAt: string (ISO date)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "panchalfenil620@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['name', 'phone', 'guests', 'date']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() < 20 &&
+             data.guests is string &&
+             data.date is string;
+    }
+
+    function isValidConfig(data) {
+      return data.keys().hasAny(['logoUrl', 'hero', 'match', 'features', 'combos', 'testimonials', 'location']);
+    }
+
+    // Rules
+    match /settings/config {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAdmin();
+      allow create: if isValidBooking(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+  }
+}

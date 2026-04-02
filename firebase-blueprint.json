@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "AppConfig": {
+      "title": "App Configuration",
+      "description": "Global settings for the IPL Cafe website",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string" },
+        "hero": { "type": "object" },
+        "match": { "type": "object" },
+        "features": { "type": "array" },
+        "combos": { "type": "array" },
+        "testimonials": { "type": "array" },
+        "location": { "type": "object" }
+      }
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A table reservation for an IPL match",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "guests": { "type": "string" },
+        "team": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "phone", "guests", "date"]
+    }
+  },
+  "firestore": {
+    "/settings/config": {
+      "schema": "AppConfig",
+      "description": "Global website configuration"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "User table reservations"
+    }
+  }
+}

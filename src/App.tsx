@@ -39,7 +39,72 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { FOOD_COMBOS, FEATURES, TESTIMONIALS } from './constants';
+import { 
+  collection, 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  addDoc, 
+  getDoc,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp,
+  getDocFromServer
+} from 'firebase/firestore';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged,
+  signOut,
+  User
+} from 'firebase/auth';
+import { db, auth } from './firebase';
 import { Match } from './types';
+
+// --- Firebase Error Handling ---
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+const handleFirestoreError = (error: any, operationType: OperationType, path: string | null) => {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+};
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. ");
+    }
+  }
+}
+testConnection();
 
 const TEAM_LOGOS: Record<string, string> = {
   'CSK': 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png',
@@ -466,26 +531,24 @@ const BookingSection = ({ onBookingSuccess, location }: { onBookingSuccess: () =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const path = 'bookings';
     try {
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      await addDoc(collection(db, path), {
+        ...formData,
+        createdAt: serverTimestamp()
       });
-      if (response.ok) {
-        alert(`Reservation request sent for ${formData.name}! We will contact you shortly.`);
-        setFormData({
-          name: '',
-          phone: '',
-          guests: '2',
-          team: 'Neutral',
-          date: new Date().toISOString().split('T')[0],
-          time: '07:30 PM'
-        });
-        onBookingSuccess();
-      }
+      alert(`Reservation request sent for ${formData.name}! We will contact you shortly.`);
+      setFormData({
+        name: '',
+        phone: '',
+        guests: '2',
+        team: 'Neutral',
+        date: new Date().toISOString().split('T')[0],
+        time: '07:30 PM'
+      });
+      onBookingSuccess();
     } catch (error) {
-      console.error('Booking error:', error);
+      handleFirestoreError(error, OperationType.CREATE, path);
       alert('Failed to send reservation. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -765,7 +828,7 @@ const Footer = () => {
   );
 };
 
-const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void }) => {
+const AdminDashboard = ({ data, bookings, onUpdate }: { data: any, bookings: any[], onUpdate: () => void }) => {
   const [activeTab, setActiveTab] = useState('general');
   const [editData, setEditData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -778,27 +841,14 @@ const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void })
 
   const handleSave = async () => {
     setIsSaving(true);
+    const path = 'settings/config';
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('/api/admin/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...editData,
-          token
-        }),
-      });
-      if (response.ok) {
-        alert('Website updated successfully!');
-        onUpdate();
-      } else {
-        alert('Unauthorized or session expired. Please login again.');
-        localStorage.removeItem('admin_token');
-        window.location.reload();
-      }
+      await setDoc(doc(db, 'settings', 'config'), editData);
+      alert('Website updated successfully!');
+      onUpdate();
     } catch (error) {
-      console.error('Update error:', error);
-      alert('Failed to update website.');
+      handleFirestoreError(error, OperationType.WRITE, path);
+      alert('Failed to update website. Check your permissions.');
     } finally {
       setIsSaving(false);
     }
@@ -840,15 +890,24 @@ const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void })
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    window.location.href = '/';
+    signOut(auth).then(() => {
+      window.location.href = '/';
+    });
   };
 
   const exportBookings = () => {
-    const headers = ['Name', 'Phone', 'Guests', 'Team', 'Date', 'Time'];
+    const headers = ['Name', 'Phone', 'Guests', 'Team', 'Date', 'Time', 'Created At'];
     const csvContent = [
       headers.join(','),
-      ...editData.bookings.map((b: any) => [b.name, b.phone, b.guests, b.team, b.date, b.time].join(','))
+      ...bookings.map((b: any) => [
+        b.name, 
+        b.phone, 
+        b.guests, 
+        b.team, 
+        b.date, 
+        b.time,
+        b.createdAt?.toDate ? b.createdAt.toDate().toLocaleString() : b.createdAt
+      ].join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -1430,7 +1489,7 @@ const AdminDashboard = ({ data, onUpdate }: { data: any, onUpdate: () => void })
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {(editData?.bookings || []).slice().reverse().map((booking: any, idx: number) => (
+                      {bookings.slice().reverse().map((booking: any, idx: number) => (
                         <tr key={idx} className="group hover:bg-white/2 transition-colors">
                           <td className="py-4">
                             <div className="font-bold">{booking?.name || 'Unknown'}</div>
@@ -1493,30 +1552,18 @@ const WhatsAppFloating = ({ number }: { number?: string }) => {
   );
 };
 
-const AdminLogin = ({ onLogin }: { onLogin: (token: string) => void }) => {
-  const [password, setPassword] = useState('');
+const AdminLogin = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setIsLoggingIn(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const json = await response.json();
-      if (json.success) {
-        localStorage.setItem('admin_token', json.token);
-        onLogin(json.token);
-      } else {
-        setError(json.message || 'Invalid password');
-      }
-    } catch (err) {
-      setError('Connection error. Try again.');
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
     } finally {
       setIsLoggingIn(false);
     }
@@ -1533,26 +1580,19 @@ const AdminLogin = ({ onLogin }: { onLogin: (token: string) => void }) => {
           <Lock className="w-8 h-8 text-gold" />
         </div>
         <h1 className="text-3xl font-display font-bold mb-2">Admin Login</h1>
-        <p className="text-white/40 mb-8">Enter password to manage your cafe screening.</p>
+        <p className="text-white/40 mb-8">Sign in with your authorized Google account.</p>
         
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input 
-            type="password" 
-            required
-            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 focus:border-gold outline-none text-center"
-            placeholder="Enter Admin Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        <div className="space-y-4">
           {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
           <button 
-            type="submit"
+            onClick={handleLogin}
             disabled={isLoggingIn}
-            className="w-full py-4 bg-gold text-stadium-black font-black uppercase tracking-widest rounded-2xl hover:bg-gold-light transition-all disabled:opacity-50"
+            className="w-full py-4 bg-gold text-stadium-black font-black uppercase tracking-widest rounded-2xl hover:bg-gold-light transition-all disabled:opacity-50 flex items-center justify-center gap-3"
           >
-            {isLoggingIn ? 'Verifying...' : 'Login to Dashboard'}
+            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+            {isLoggingIn ? 'Signing in...' : 'Sign in with Google'}
           </button>
-        </form>
+        </div>
         <a href="/" className="inline-block mt-8 text-white/40 hover:text-white text-sm font-bold flex items-center justify-center gap-2">
           <ArrowLeft className="w-4 h-4" />
           Back to Website
@@ -1566,26 +1606,98 @@ const AdminLogin = ({ onLogin }: { onLogin: (token: string) => void }) => {
 
 export default function App() {
   const [data, setData] = useState<any>(null);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [adminToken, setAdminToken] = useState<string | null>(localStorage.getItem('admin_token'));
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsAuthReady(true);
+    });
+
+    // Real-time config listener
+    const unsubscribeConfig = onSnapshot(doc(db, 'settings', 'config'), (docSnap) => {
+      if (docSnap.exists()) {
+        setData(docSnap.data());
+        setIsLoading(false);
+      } else {
+        // Seed initial data if Firestore is empty
+        seedInitialData();
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/config');
+    });
+
+    // Real-time bookings listener
+    const unsubscribeBookings = onSnapshot(query(collection(db, 'bookings'), orderBy('createdAt', 'desc')), (snapshot) => {
+      const bookingsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setBookings(bookingsList);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'bookings');
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeConfig();
+      unsubscribeBookings();
+    };
+  }, []);
+
+  const seedInitialData = async () => {
+    const initial = {
+      logoUrl: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/IPL/logos/LogoOutline/IPL.png',
+      hero: {
+        title: 'WATCH IPL LIVE ON',
+        highlight: 'GIANT SCREEN',
+        subtitle: 'Book your table now for tonight’s big match, enjoy exciting food combos, live crowd energy, and exclusive match-day offers.',
+        whatsappNumber: '919999999999',
+        backgroundImage: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&q=80&w=2000'
+      },
+      match: {
+        team1: { name: 'CSK', logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/LogoOutline/CSK.png' },
+        team2: { name: 'MI', logo: 'https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/logos/LogoOutline/MI.png' },
+        date: '2026-04-05',
+        time: '07:30 PM',
+        venue: 'Wankhede Stadium, Mumbai',
+        offer: '🔥 OFFER: Free fries on every six hit by your favorite team!'
+      },
+      features: [
+        { id: '1', icon: 'Tv', title: '120" LED Screen', description: 'Crystal clear 4K resolution for the ultimate stadium feel.' },
+        { id: '2', icon: 'Volume2', title: 'Surround Sound', description: 'High-fidelity audio that makes you feel every cheer and wicket.' },
+        { id: '3', icon: 'Utensils', title: 'IPL Combos', description: 'Specially curated match-day food and drink platters.' },
+        { id: '4', icon: 'Zap', title: 'Live DJ', description: 'Music and energy that keeps the vibe high throughout the match.' }
+      ],
+      combos: [
+        { id: '1', name: 'Powerplay Platter', price: '₹499', description: 'Loaded Nachos + 2 Mocktails + Peri Peri Fries', image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&q=80&w=800', tag: 'Best Seller' },
+        { id: '2', name: 'Boundary Bucket', price: '₹799', description: '12 Chicken Wings + Large Pizza + Coke Pitcher', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=800', tag: 'Group Deal' },
+        { id: '3', name: 'Super Over Snack', price: '₹299', description: 'Cheese Sliders + Masala Wedges', image: 'https://images.unsplash.com/photo-1550507992-eb63ffee0847?auto=format&fit=crop&q=80&w=800', tag: 'Quick Bite' },
+        { id: '4', name: 'Century Combo', price: '₹999', description: 'Full Tandoori Platter + 4 Beverages', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800', tag: 'Premium' }
+      ],
+      testimonials: [
+        { id: '1', name: 'Rahul Sharma', rating: 5, comment: 'The energy here is insane! Felt like I was sitting in the stadium.', avatar: 'https://i.pravatar.cc/150?u=rahul' },
+        { id: '2', name: 'Priya Patel', rating: 5, comment: 'Amazing food combos and the giant screen is just perfect.', avatar: 'https://i.pravatar.cc/150?u=priya' }
+      ],
+      location: {
+        address: 'Shop 4-5, Premium Plaza, Sindhu Bhavan Road, Ahmedabad, Gujarat 380054',
+        phone: '+91 99999 88888',
+        email: 'hello@iplcafe.com',
+        landmark: 'Near Metro Pillar 42',
+        parking: 'Valet Parking Available',
+        mapUrl: 'https://picsum.photos/seed/map/800/600'
+      }
+    };
     try {
-      const response = await fetch('/api/data');
-      const json = await response.json();
-      setData(json);
-    } catch (error) {
-      console.error('Fetch error:', error);
-    } finally {
+      await setDoc(doc(db, 'settings', 'config'), initial);
+      setData(initial);
       setIsLoading(false);
+    } catch (error) {
+      console.error('Seeding error:', error);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  if (isLoading) {
+  if (isLoading || !isAuthReady) {
     return (
       <div className="min-h-screen bg-stadium-black flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin" />
@@ -1593,41 +1705,39 @@ export default function App() {
     );
   }
 
+  const isAdmin = user && user.email === 'panchalfenil620@gmail.com' && user.emailVerified;
+
   return (
     <Router>
       <div className="min-h-screen selection:bg-gold selection:text-stadium-black">
         <Navbar logoUrl={data?.logoUrl} />
         
         <Routes>
-          {/* Visitor View */}
           <Route path="/" element={
-            <>
+            <main>
               <Hero hero={data?.hero} match={data?.match} />
               <MatchHighlight match={data?.match} />
               <Features features={data?.features} />
               <FoodCombos combos={data?.combos} />
-              <BookingSection onBookingSuccess={fetchData} location={data?.location} />
               <Scarcity />
+              <BookingSection onBookingSuccess={() => {}} location={data?.location} />
               <SocialProof testimonials={data?.testimonials} />
               <Location location={data?.location} />
-            </>
+              <Footer />
+              <WhatsAppFloating number={data?.hero?.whatsappNumber} />
+            </main>
           } />
-
-          {/* Hidden Admin Route */}
+          
           <Route path="/admin" element={
-            adminToken ? (
-              <AdminDashboard data={data} onUpdate={fetchData} />
+            isAdmin ? (
+              <AdminDashboard data={data} bookings={bookings} onUpdate={() => {}} />
             ) : (
-              <AdminLogin onLogin={(token) => setAdminToken(token)} />
+              <AdminLogin />
             )
           } />
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" />} />
+          
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        
-        <Footer />
-        <WhatsAppFloating number={data?.hero?.whatsappNumber} />
       </div>
     </Router>
   );
